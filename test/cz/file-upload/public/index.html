@@ -24,9 +24,40 @@
 
                     return file;
                 })
-                .then(beginUpload)
-                .then(handleCompleted)
-                .catch(handleError);
+                .then((file) => {
+                    var reader = new FileReader();
+
+                    reader.readAsBinaryString(file);
+                    return new Promise((res, rej) => {
+                        reader.on("load", () => res(reader));
+                        reader.on("error", rej);
+                    })
+                })
+                .then(
+                    (reader) => {
+                        xhr.open("POST", "/upload");
+                        xhr.upload.addEventListener("progress", (e) => {
+                            if (e.lengthComputable) {
+                                progress.value = Math.round((e.loaded * 100) / e.total);
+                                progress.innerHTML = "Uploading, " + progress.value + " completed";
+                            }
+                        }, false);
+
+                        return new Promise((res, rej) => {
+                            xhr.upload.addEventListener("load", function(e) {
+                                res;
+                            }, false);
+                            xhr.upload.on("error", rej);
+                        });
+                    }
+                )
+                .then(() => {
+                    progress.value = 100;
+                    progress.innerHTML = "Upload completed";
+                })
+                .catch(() => {
+                    progress.innerHTML = "UPLOAD FAILED!";
+                });
 
             return false;
         }
@@ -39,9 +70,9 @@
 </script>
 
 <form id="myform" name="myform">
-  <label for="f1_dir">DirName:</label><input id="f1_dir" type="text" name="dirname" value="johndoe">
-  <label for="f1_file">File</label><input id="f1_file" type="file" name="dirname" onchange="setFile(this.files);">
-  <button onclick="return upload(this.form);">Upload</button>
+    <label for="f1_dir">DirName:</label><input id="f1_dir" type="text" name="dirname" value="johndoe">
+    <label for="f1_file">File</label><input id="f1_file" type="file" name="dirname" onchange="setFile(this.files);">
+    <button onclick="return upload(this.form);">Upload</button>
 </form>
 
 <article id="upload_status">
