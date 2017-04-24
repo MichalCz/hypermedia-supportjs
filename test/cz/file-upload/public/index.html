@@ -1,17 +1,39 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+    <form id="myform" name="myform">
+        <label for="f1_dir">DirName:</label><input id="f1_dir" type="text" name="dirname" value="johndoe">
+        <label for="f1_file">File</label><input id="f1_file" type="file" name="dirname" onchange="return setFile(this.files);">
+        <button onclick="return upload(this.form);">Upload</button>
+    </form>
+
+    <article id="upload_status">
+        <header>Upload status</header>
+        <section>
+            <p>Waiting for file</p>
+            <progress min="0" max="100" value="0">-</progress>
+        </section>
+    </article>
+
 <script>
-    const [upload, setFile] = () => {
+    const [setFile, upload] = (() => {
         let file = null;
 
-        const file_info = document.querySelector(".upload_status section p");
-        const progress = document.querySelector(".upload_status section progress");
+        const file_info = document.querySelector("#upload_status section p");
+        const progress = document.querySelector("#upload_status section progress");
 
-        const upload() {
+        const upload = () => {
+            console.log("Upload called", file);
+
             Promise.resolve(file)
                 .then((file) => {
                     if (!file)
                         throw new Error("File not set");
                     if (file.size > 1e9)
                         throw new Error("File exceeds 1GB");
+
+                    console.log("Have file of right size", file);
 
                     return file;
                 })
@@ -27,16 +49,28 @@
                 .then((file) => {
                     var reader = new FileReader();
 
+                    const ret = new Promise((res, rej) => {
+                        reader.addEventListener("load", (evt) => {
+                            console.log("load", reader);
+                            res(evt.target.result);
+                        });
+                        reader.addEventListener("error", rej);
+                    });
+
+                    console.log("reader created", reader);
+
                     reader.readAsBinaryString(file);
-                    return new Promise((res, rej) => {
-                        reader.on("load", () => res(reader));
-                        reader.on("error", rej);
-                    })
+
+                    console.log("reader read", reader);
+                    return ret;
                 })
                 .then(
-                    (reader) => {
+                    (blob) => {
+                        const xhr = new XMLHttpRequest();
+
                         xhr.open("POST", "/upload");
                         xhr.upload.addEventListener("progress", (e) => {
+                            console.log('XHR progress');
                             if (e.lengthComputable) {
                                 progress.value = Math.round((e.loaded * 100) / e.total);
                                 progress.innerHTML = "Uploading, " + progress.value + " completed";
@@ -45,9 +79,12 @@
 
                         return new Promise((res, rej) => {
                             xhr.upload.addEventListener("load", function(e) {
-                                res;
+                                res();
                             }, false);
-                            xhr.upload.on("error", rej);
+                            xhr.upload.addEventListener("error", rej);
+                            xhr.overrideMimeType('text/plain; charset=x-user-defined-binary');
+                            xhr.send(blob);
+                            console.log('XHR open');
                         });
                     }
                 )
@@ -55,30 +92,20 @@
                     progress.value = 100;
                     progress.innerHTML = "Upload completed";
                 })
-                .catch(() => {
+                .catch((e) => {
+                    console.error(e);
                     progress.innerHTML = "UPLOAD FAILED!";
                 });
 
             return false;
-        }
+        };
 
-        const setFile(files) {
+        const setFile = (files) => {
             file = files[0];
-        }
+            console.log("file set", file);
+            return false;
+        };
 
-    );
+        return [setFile, upload];
+    })();
 </script>
-
-<form id="myform" name="myform">
-    <label for="f1_dir">DirName:</label><input id="f1_dir" type="text" name="dirname" value="johndoe">
-    <label for="f1_file">File</label><input id="f1_file" type="file" name="dirname" onchange="setFile(this.files);">
-    <button onclick="return upload(this.form);">Upload</button>
-</form>
-
-<article id="upload_status">
-    <header>Upload status</header>
-    <section>
-        <p>Waiting for file</p>
-        <progress min="0" max="100" value="0">-</progress>
-    </section>
-</article>
