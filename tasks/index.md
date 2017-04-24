@@ -63,3 +63,8 @@ Przydatne:
 
 * console.log, console.error
 * [Dokumentacja Yargs](https://www.npmjs.com/package/yargs)
+
+## Promisify
+
+Napisz moduł, którzy wykona asynchroniczną funkcję node z dowolnego domyślnego modułu (np. fs) i obsłuży domyślny
+callback za pomocą Promesy.
