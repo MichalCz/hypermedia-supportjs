@@ -96,3 +96,10 @@ A powinien działać tak:
 bez.
 
 Sprawdź wewnątrz funkcji, czy została wywołana z callbackiem.
+
+Exif
+------
+
+
+Streamy
+---------
