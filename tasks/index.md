@@ -66,5 +66,33 @@ Przydatne:
 
 ## Promisify
 
-Napisz moduł, którzy wykona asynchroniczną funkcję node z dowolnego domyślnego modułu (np. fs) i obsłuży domyślny
-callback za pomocą Promesy.
+Napisz moduł, którzy wykona asynchroniczną funkcję node z dowolnego domyślnego
+modułu (np. fs) i obsłuży domyślny callback za pomocą Promesy.
+
+Domyślny callback działa na przykład tak:
+
+    fs.stat(__dirname + '/' + __filename, (e, stat) => {
+        if (e)
+            console.log('error', e); // wywołane, kiedy np. plik nie istnieje,
+                                     // lub kiedy nie mamy dostępu do jego
+                                     // katalogu
+        else
+            console.log(stats);      // wywołane jeśli wszystko pójdzie ok
+    });
+
+A powinien działać tak:
+
+    mojPromisowyFs.stat(__dirname + '/' + __filename)
+        .then(
+            (stats) => console.log(stats),
+            (e) => console.log('error', e)
+        );
+
+`Proste`:  użyj modułu `thenify`
+
+`Gwiazdka`: nie używaj zewnętrznych modułów (♫♪ napisz to sam ♪♫).
+
+`Gwiazdka-kropka-Gwiazdka`: napisz to sam, tak, żeby działało z callbackiem i
+bez.
+
+Sprawdź wewnątrz funkcji, czy została wywołana z callbackiem.
