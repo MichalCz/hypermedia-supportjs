@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+    <form id="myform" name="myform">
+        <label for="f1_dir">DirName:</label><input id="f1_dir" type="text" name="dirname" value="johndoe">
+        <label for="f1_file">File</label><input id="f1_file" type="file" name="filename" onchange="return setFile(this.files);">
+        <button onclick="return upload(this.form);">Upload</button>
+    </form>
+
+    <article id="upload_status">
+        <header>Upload status</header>
+        <section>
+            <p>Waiting for file</p>
+            <progress min="0" max="100" value="0">-</progress>
+        </section>
+    </article>
+
+<script>
+    const [setFile, upload] = (() => {
+        let file = null;
+
+        const file_info = document.querySelector("#upload_status section p");
+        const progress = document.querySelector("#upload_status section progress");
+
+        const upload = () => {
+            console.log("Upload called", file);
+
+            Promise.resolve(file)
+                .then((file) => {
+                    if (!file)
+                        throw new Error("File not set");
+                    if (file.size > 1e9)
+                        throw new Error("File exceeds 1GB");
+
+                    console.log("Have file of right size", file);
+
+                    return file;
+                })
+                .then((file) => {
+                    file_info.innerHTML = "uploading file ";
+                    file_info.appendChild(document.createTextNode(file.name));
+
+                    progress.value = 0;
+                    progress.innerHTML = "Waiting for connection";
+
+                    return file;
+                })
+                .then((file) => {
+                    var reader = new FileReader();
+
+                    const ret = new Promise((res, rej) => {
+                        reader.addEventListener("load", (evt) => {
+                            console.log("load", reader);
+                            res(evt.target.result);
+                        });
+                        reader.addEventListener("error", rej);
+                    });
+
+                    console.log("reader created", reader);
+
+                    reader.readAsBinaryString(file);
+
+                    console.log("reader read", reader);
+                    return ret;
+                })
+                .then(
+                    (blob) => {
+                        const xhr = new XMLHttpRequest();
+                        const dirname = document.querySelector('#f1_dir').value;
+
+                        xhr.open("POST", "/upload/" + dirname + '/' + file.name);
+                        xhr.upload.addEventListener("progress", (e) => {
+                            console.log('XHR progress');
+                            if (e.lengthComputable) {
+                                progress.value = Math.round((e.loaded * 100) / e.total);
+                                progress.innerHTML = "Uploading, " + progress.value + " completed";
+                            }
+                        }, false);
+
+                        return new Promise((res, rej) => {
+                            xhr.upload.addEventListener("load", function(e) {
+                                res();
+                            }, false);
+                            xhr.upload.addEventListener("error", rej);
+                            xhr.overrideMimeType('text/plain; charset=x-user-defined-binary');
+                            xhr.send(blob);
+                            console.log('XHR open');
+                        });
+                    }
+                )
+                .then(() => {
+                    progress.value = 100;
+                    progress.innerHTML = "Upload completed";
+                })
+                .catch((e) => {
+                    console.error(e);
+                    progress.innerHTML = "UPLOAD FAILED!";
+                });
+
+            return false;
+        };
+
+        const setFile = (files) => {
+            file = files[0];
+            console.log("file set", file);
+            return false;
+        };
+
+        return [setFile, upload];
+    })();
+</script>
