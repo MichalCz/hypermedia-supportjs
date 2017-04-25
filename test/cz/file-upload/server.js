@@ -3,15 +3,17 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const base = path.join(__dirname, "upload/");
+const base = path.join(__dirname, "uploads/");
 
 app.use("/upload", (req, res) => {
     const name = req.url.replace(/[^\/\w\d]+/g, '-').match(/([\-\w\d\.]+)\/([\-\w\d\.]+)$/);
 
-    if (!name || !name[0] || !name[1] || req.method !== 'POST')
+    if (!name || !name[0] || req.method !== 'POST')
         return res.sendStatus(409);
 
-    const target = path.join(base, name.join("/"));
+    console.log("Writing", name);
+
+    const target = path.join(base, name[0]);
     new Promise((s, j) => {
         fs.access(
             path.dirname(target),
@@ -36,7 +38,10 @@ app.use("/upload", (req, res) => {
         () => res.sendStatus(201)
     )
     .catch(
-        () => res.sendStatus(500)
+        (e) => {
+            console.error("error", e);
+            res.sendStatus(500);
+        }
     )
     .catch(
         () => console.log("probably client disconnected")

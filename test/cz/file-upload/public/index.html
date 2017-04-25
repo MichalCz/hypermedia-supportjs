@@ -4,7 +4,7 @@
 
     <form id="myform" name="myform">
         <label for="f1_dir">DirName:</label><input id="f1_dir" type="text" name="dirname" value="johndoe">
-        <label for="f1_file">File</label><input id="f1_file" type="file" name="dirname" onchange="return setFile(this.files);">
+        <label for="f1_file">File</label><input id="f1_file" type="file" name="filename" onchange="return setFile(this.files);">
         <button onclick="return upload(this.form);">Upload</button>
     </form>
 
@@ -67,8 +67,9 @@
                 .then(
                     (blob) => {
                         const xhr = new XMLHttpRequest();
+                        const dirname = document.querySelector('#f1_dir').value;
 
-                        xhr.open("POST", "/upload");
+                        xhr.open("POST", "/upload/" + dirname + '/' + file.name);
                         xhr.upload.addEventListener("progress", (e) => {
                             console.log('XHR progress');
                             if (e.lengthComputable) {
