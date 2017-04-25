@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const thenify = require('thenify');
 
 const app = express();
 const base = path.join(__dirname, "uploads/");
@@ -14,24 +15,26 @@ app.use("/upload", (req, res) => {
     console.log("Writing", name);
 
     const target = path.join(base, name[0]);
-    new Promise((s, j) => {
-        fs.access(
-            path.dirname(target),
-            fs.constants.R_OK | fs.constants.W_OK | fs.constants.X_OK,
-            (err) => err ?
-                fs.mkdir(path.dirname(target), (err) => err ? j(err) : s()) :
-                s()
-        );
-    })
+    thenify(fs.access)(
+        path.dirname(target),
+        fs.constants.R_OK | fs.constants.W_OK | fs.constants.X_OK
+    )
+    .then(
+        (ok) => 0,
+        (err) => thenify(fs.mkdir)(path.dirname(target))
+    )
     .then(
         () => fs.createWriteStream(target)
     )
     .then(
         (wStream) => new Promise((s, j) => {
             req.on("error", j);
-            req.pipe(wStream)
-                .on("error", j)
-                .on("finish", s);
+            setTimeout(() =>
+                req.pipe(wStream)
+                    .on("error", j)
+                    .on("finish", s),
+                5000
+            );
         })
     )
     .then(
@@ -48,5 +51,6 @@ app.use("/upload", (req, res) => {
     );
 
 });
+
 app.use(express.static(path.join(__dirname, "public/")));
 app.listen(3031);
